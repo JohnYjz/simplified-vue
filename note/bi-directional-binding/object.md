@@ -48,11 +48,11 @@ set(newVal) {
 }
 ```
 
-梳理：
-1、a.b创建属性c，则调用defineProperty方法设置get和set属性
-2、监听a.b.c，会用c和对应的回调cb函数创建watcher对象，watcher对象中会读取一次c，进而触发c的get
-3、c的get方法会将c的watcher塞入dep对象中存起来
-4、在对c做出其他赋值操作的时候，会调用c的set方法，此时会从dep中找到c的watcher，并调用watcher中的回调
+#### 梳理：
+* 1、a.b创建属性c，则调用defineProperty方法设置get和set属性
+* 2、监听a.b.c，会用c和对应的回调cb函数创建watcher对象，watcher对象中会读取一次c，进而触发c的get
+* 3、c的get方法会将c的watcher塞入dep对象中存起来
+* 4、在对c做出其他赋值操作的时候，会调用c的set方法，此时会从dep中找到c的watcher，并调用watcher中的回调
 
 #### 源码
 ```
