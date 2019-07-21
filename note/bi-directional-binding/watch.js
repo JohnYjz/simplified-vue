@@ -36,6 +36,7 @@ Vue.prototype.$watch = function(expOrFn, cb, options) {
   const vm = this;
   options = options || {};
   const watcher = new watcher(vm, expOrFn, cb, options);
+  // 如果immediate，则立即执行callback
   if (options.immediate) {
     cb.call(vm, watcher.value);
   }
@@ -45,8 +46,15 @@ Vue.prototype.$watch = function(expOrFn, cb, options) {
 }
 
 class watcher {
-  constructor(vm, expOrFn, cb) {
+  constructor(vm, expOrFn, cb, options) {
     this.vm = vm;
+
+    if(options) {
+      this.deep = !!options.deep;
+    } else {
+      this.deep = false;
+    }
+
     this.deps = [];
     this.depIds = new Set();
     if (typeof expOrFn === 'function') {
@@ -56,6 +64,14 @@ class watcher {
     }
     this.cb = cb;
     this.value = this.get();
+  }
+  get() {
+    window.target = this;
+    let value = this.getter.call(vm, vm);
+    if(this.deep) {
+      // 对所有的子属性执行一次读取操作
+      traverse(value);
+    }
   }
   addDep(dep) {
     const id = dep.id;
@@ -91,6 +107,43 @@ function parsePath(path) {
     return obj;
   }
 }
+
+// 深度优先遍历临时用来标记该节点已经访问过
+const seenObjects = new Set();
+
+function traverse(val) {
+  _traverse(val, seenObjects);
+  seenObjects.clear();
+}
+
+// 一个深度优先遍历
+function _traverse(val, seen) {
+  let i, keys;
+  const isA = Array.isArray(val);
+  if((!isA && !isObject(val)) || Object.isFrozen(val)) {
+    return;
+  }
+  // 如果是响应式的
+  if(val.__ob__) {
+    const depId = val.__ob__.dep.id;
+    // 且已经记录了，则return
+    if(seen.has(depId)) {
+      return;
+    }
+    // 否则标记
+    seen.add(depId);
+  }
+  // 注意这里，对其子节点执行了一次读取操作
+  if (isA) {
+    i = val.length;
+    while(i--) _traverse(val[i], seen);
+  } else {
+    keys = Object.keys(val);
+    i = keys.length;
+    while(i--) _traverse(val[i], seen);
+  }
+}
+
 
 let uid = 0;
 class Dep {
